@@ -1,0 +1,171 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  password  String
+  address   String?
+  city      String?
+  pincode   String?
+  orders    Order[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id         String    @id @default(cuid())
+  name       String    @unique
+  slug       String    @unique
+  woodType   String? // e.g. "Sheesham", "Mango Wood", "Teak"
+  isActive   Boolean   @default(true)
+  showOnHome Boolean   @default(true)
+  sortOrder  Int       @default(0)
+  products   Product[]
+  createdAt  DateTime  @default(now())
+}
+
+model Product {
+  id             String         @id @default(cuid())
+  name           String
+  slug           String         @unique
+  description    String
+  story          String? // craftsman's story / making process - for emotional connect
+  price          Float
+  comparePrice   Float? // for showing discounts
+  woodType       String?
+  dimensions     String? // e.g. "12in x 8in x 4in"
+  weight         String?
+  careInfo       String?
+  stock          Int            @default(1)
+  isCustomizable Boolean        @default(false)
+  isFeatured     Boolean        @default(false)
+  isActive       Boolean        @default(true)
+  images         ProductImage[]
+  videos         ProductVideo[]
+  category       Category       @relation(fields: [categoryId], references: [id])
+  categoryId     String
+  orderItems     OrderItem[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([categoryId])
+}
+
+model ProductVideo {
+  id        String  @id @default(cuid())
+  url       String
+  title     String?
+  order     Int     @default(0)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+
+  @@index([productId])
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  url       String
+  altText   String?
+  order     Int     @default(0)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+
+  @@index([productId])
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum OrderChannel {
+  WHATSAPP
+  ONLINE
+}
+
+model Order {
+  id            String       @id @default(cuid())
+  orderNumber   String       @unique
+  customerName  String
+  customerPhone String
+  customerEmail String?
+  address       String?
+  city          String?
+  pincode       String?
+  channel       OrderChannel @default(WHATSAPP)
+  status        OrderStatus  @default(PENDING)
+  totalAmount   Float
+  notes         String?
+  items         OrderItem[]
+  user          User?        @relation(fields: [userId], references: [id])
+  userId        String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([userId])
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId   String
+  product   Product @relation(fields: [productId], references: [id])
+  productId String
+  quantity  Int     @default(1)
+  price     Float // price at time of order
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+enum InquiryType {
+  CONTACT
+  CUSTOM
+}
+
+enum InquiryStatus {
+  NEW
+  IN_PROGRESS
+  CLOSED
+}
+
+model Inquiry {
+  id           String        @id @default(cuid())
+  type         InquiryType
+  status       InquiryStatus @default(NEW)
+  name         String
+  phone        String?
+  email        String?
+  subject      String?
+  message      String
+  budget       String?
+  dimensions   String?
+  woodType     String?
+  referenceUrl String?
+  adminNotes   String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([type, status])
+  @@index([createdAt])
+}
